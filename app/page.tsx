@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Headphones, Landmark, MapPin, Mic2, ShieldCheck } from "lucide-react";
+import { Headphones, Landmark, MapPin, Mic2, ShieldCheck, Ticket } from "lucide-react";
 import { BANK, CAUSE, EVENT, money } from "@/lib/config";
 import {
   Embers,
@@ -12,6 +12,7 @@ import {
 } from "@/components/brand";
 import { CopyButton } from "@/components/copy-button";
 import { PaymentForm } from "@/components/payment-form";
+import { BuyCta } from "@/components/buy-cta";
 
 const BANK_ROWS: { label: string; value: string; copy?: boolean }[] = [
   { label: "Account name", value: BANK.accountName, copy: true },
@@ -76,7 +77,7 @@ export default function Home() {
 
       <main className="relative mx-auto max-w-6xl px-6 pb-24">
         {/* ------------------------------------------------------------ hero */}
-        <section className="pt-8 text-center sm:pt-12">
+        <section className="pt-6 text-center sm:pt-8">
           <p
             className="t-rise t-fact text-xs text-[var(--foreground)]/80 sm:text-sm"
             style={{ ["--i" as string]: 0 }}
@@ -119,8 +120,19 @@ export default function Home() {
             {CAUSE.blurb}
           </p>
 
+          {/* Buying sits above the poster blocks, not below them. */}
+          <div className="t-rise mt-8" style={{ ["--i" as string]: 4 }}>
+            <a
+              href="#buy"
+              className="t-press inline-flex items-center gap-2.5 rounded-full bg-[var(--gold)] px-7 py-3.5 text-sm font-semibold text-[var(--accent-foreground)] shadow-[0_10px_40px_-10px_rgba(240,180,60,0.65)] hover:brightness-110"
+            >
+              <Ticket className="size-4" />
+              Get tickets · {money(EVENT.ticketPriceCents)}
+            </a>
+          </div>
+
           {/* live performance credit */}
-          <div className="t-rise mt-14" style={{ ["--i" as string]: 5 }}>
+          <div className="t-rise mt-12" style={{ ["--i" as string]: 5 }}>
             <p className="t-fact text-[11px] text-[var(--muted-foreground)]">
               Live performance by
             </p>
@@ -131,14 +143,14 @@ export default function Home() {
           </div>
 
           {/* theme wordmark */}
-          <div className="t-rise mt-16" style={{ ["--i" as string]: 6 }}>
+          <div className="t-rise mt-10" style={{ ["--i" as string]: 6 }}>
             <ThemeTag className="mb-1 block" />
             <Wordmark className="mx-auto w-fit text-center" />
           </div>
 
           {/* date, in the gold circle badge from the ticket */}
           <div
-            className="t-rise mt-14 flex flex-col items-center gap-6 sm:flex-row sm:justify-center sm:gap-10"
+            className="t-rise mt-10 flex flex-col items-center gap-6 sm:flex-row sm:justify-center sm:gap-10"
             style={{ ["--i" as string]: 7 }}
           >
             <div className="grid size-44 shrink-0 place-items-center rounded-full border-2 border-[var(--gold)]/60 text-center">
@@ -163,7 +175,7 @@ export default function Home() {
         </section>
 
         {/* ------------------------------------------------------- programme */}
-        <section className="mt-20">
+        <section className="mt-14">
           {/*
            * The columns are equal-height grid cells. Badge and role sit at the
            * top of each, the gold name at the bottom with its note just above,
@@ -197,7 +209,7 @@ export default function Home() {
         </section>
 
         {/* ----------------------------------------------------------- price */}
-        <section className="mt-14 text-center">
+        <section className="mt-12 text-center">
           <div className="flex items-center justify-center gap-5">
             <GivingIcon className="hidden size-12 text-[var(--gold)] sm:block" />
             <span className="t-banner px-8 py-3 sm:px-14">
@@ -217,10 +229,10 @@ export default function Home() {
           <p className="t-script mt-3 text-2xl text-white/80">{EVENT.signoff}</p>
         </section>
 
-        <Perforation className="mx-6 mt-16" />
+        <Perforation className="mx-6 mt-12" />
 
         {/* --------------------------------------------------------- payment */}
-        <section id="buy" className="t-enter mt-16">
+        <section id="buy" className="t-enter mt-12 scroll-mt-6">
           <div className="t-frame t-frame-double overflow-hidden rounded-2xl">
             <div className="grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
               {/* ------------------------------------------- where to pay */}
@@ -279,7 +291,7 @@ export default function Home() {
         </section>
 
         {/* ----------------------------------------------------------- steps */}
-        <section className="mt-24">
+        <section className="mt-16">
           <h2 className="t-gold text-center text-3xl">How it works</h2>
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {STEPS.map((s, i) => (
@@ -300,6 +312,8 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      <BuyCta label={`Get tickets · ${money(EVENT.ticketPriceCents)}`} />
 
       <footer className="relative border-t border-[var(--border)]">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 text-xs text-[var(--muted-foreground)] sm:flex-row sm:items-center sm:justify-between">

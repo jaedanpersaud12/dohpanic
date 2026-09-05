@@ -380,11 +380,17 @@
   letter-spacing: 0.005em;
   transform: skewX(-7deg);
   transform-origin: left bottom;
-  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.85);
+  /*
+   * A black stroke on dark type over a dark ground erodes the letterform. Keep
+   * it thin for separation, and let a warm halo do the work of lifting the
+   * glyphs off the background instead.
+   */
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.55);
   paint-order: stroke fill;
   text-shadow:
-    3px 4px 0 rgba(0, 0, 0, 0.9),
-    0 0 34px rgba(224, 38, 21, 0.35);
+    2px 3px 0 rgba(0, 0, 0, 0.85),
+    0 0 18px rgba(255, 122, 48, 0.45),
+    0 0 52px rgba(224, 38, 21, 0.3);
 }
 
 /* --- Metal and flame ------------------------------------------------------ */
@@ -405,11 +411,17 @@
 
 /* Flame fill — used for the second line of the wordmark. */
 .t-flame-text {
+  /*
+   * The dark end of this gradient used to bottom out near #9c1408, which on a
+   * #0a0705 page left the lower half of every letter unreadable. It now stays
+   * above the background by a wide margin at every stop.
+   */
   background: linear-gradient(
     172deg,
-    var(--flame-bright) 0%,
-    var(--flame) 55%,
-    #9c1408 100%
+    #ffc9a3 0%,
+    var(--flame-bright) 38%,
+    #f4381d 78%,
+    var(--flame) 100%
   );
   background-clip: text;
   -webkit-background-clip: text;

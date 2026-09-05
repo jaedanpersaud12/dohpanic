@@ -1,56 +1,78 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   DESIGN TOKENS — palette after rareui.com, motion after transitions.dev
+   DESIGN TOKENS — palette after the printed ticket (black / gold / flame),
+   motion after transitions.dev
    =========================================================================== */
 
 :root {
-  --background: #ffffff;
-  --foreground: #333333;
-  --card: #ebebeb;
-  --card-foreground: #333333;
-  --popover: #ffffff;
-  --popover-foreground: #333333;
-  --primary: #000000;
-  --primary-foreground: #ffffff;
-  --secondary: #f3f4f6;
-  --secondary-foreground: #4b5563;
-  --muted: #f9fafb;
-  --muted-foreground: #6b7280;
-  --accent: #fc4c01;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
+  /* Ink — near-black stage, warmed very slightly so gold sits on it */
+  --background: #0a0705;
+  --foreground: #ece4d8;
+  --card: #120d09;
+  --card-foreground: #ffffff;
+  --popover: #17110b;
+  --popover-foreground: #ece4d8;
+  --primary: #f0b43c;
+  --primary-foreground: #0a0705;
+  --secondary: #17110b;
+  --secondary-foreground: #ffffff;
+  --muted: #17110b;
+  --muted-foreground: #a3937c;
+
+  /* Gold — headline / prestige tier */
+  --gold: #f0b43c;
+  --gold-bright: #ffd77a;
+  --gold-deep: #b8791a;
+  --accent: #f0b43c;
+  --accent-foreground: #0a0705;
+
+  /* Red — urgency / energy tier */
+  --flame: #e02615;
+  --flame-bright: #ff5a1f;
+  --destructive: #e02615;
   --destructive-foreground: #ffffff;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #fc4c01;
+
+  --success: #35c46a;
+  --warning: #f0b43c;
+  --border: #3a2a14;
+  --input: #4a3418;
+  --ring: #f0b43c;
   --radius: 0.75rem;
 }
 
+/*
+ * The site is committed to the ticket's black-and-gold look, so dark mode is
+ * the same palette rather than an inversion. The class stays for the sake of
+ * anything that keys off it.
+ */
 .dark {
-  --background: #000000;
-  --foreground: #e5e5e5;
-  --card: #121212;
+  --background: #0a0705;
+  --foreground: #ece4d8;
+  --card: #120d09;
   --card-foreground: #ffffff;
-  --popover: #171717;
-  --popover-foreground: #e5e5e5;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #121212;
+  --popover: #17110b;
+  --popover-foreground: #ece4d8;
+  --primary: #f0b43c;
+  --primary-foreground: #0a0705;
+  --secondary: #17110b;
   --secondary-foreground: #ffffff;
-  --muted: #171717;
-  --muted-foreground: #a3a3a3;
-  --accent: #fc4c01;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
+  --muted: #17110b;
+  --muted-foreground: #a3937c;
+  --gold: #f0b43c;
+  --gold-bright: #ffd77a;
+  --gold-deep: #b8791a;
+  --accent: #f0b43c;
+  --accent-foreground: #0a0705;
+  --flame: #e02615;
+  --flame-bright: #ff5a1f;
+  --destructive: #e02615;
   --destructive-foreground: #ffffff;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --border: #262626;
-  --input: #404040;
-  --ring: #fc4c01;
+  --success: #35c46a;
+  --warning: #f0b43c;
+  --border: #3a2a14;
+  --input: #4a3418;
+  --ring: #f0b43c;
 }
 
 /* --- Motion scale — transitions.dev tokens -------------------------------- */
@@ -85,6 +107,11 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-deep: var(--gold-deep);
+  --color-flame: var(--flame);
+  --color-flame-bright: var(--flame-bright);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -94,7 +121,12 @@
   --color-ring: var(--ring);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-figtree), var(--font-inter), ui-sans-serif, sans-serif;
+  /* Condensed caps carry every hard fact: dates, venue, names. */
+  --font-display: var(--font-condensed), "Arial Narrow", ui-sans-serif, sans-serif;
+  /* The poster voice — big, heavy, meant to be skewed and outlined. */
+  --font-brush: var(--font-brush), var(--font-condensed), ui-sans-serif, sans-serif;
+  /* Light script for connectors: "Theme:", the sign-off. */
+  --font-script: var(--font-script), ui-serif, cursive;
   --font-mono: var(--font-mono-code), ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -122,10 +154,10 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: -0.025em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
   }
-  h1 { letter-spacing: -0.032em; }
   input, textarea, select, button { font: inherit; }
   :focus-visible {
     outline: 2px solid var(--ring);
@@ -307,4 +339,183 @@
     scroll-behavior: auto !important;
   }
   .t-shimmer { animation: none; color: var(--muted-foreground); }
+}
+
+
+/* ===========================================================================
+   TICKET LANGUAGE — the printed ticket, translated into CSS.
+   Three colour tiers do all the work: gold = headline and prestige,
+   flame = urgency, plain white = utility text.
+   =========================================================================== */
+
+/* --- Type voices ---------------------------------------------------------- */
+
+/* Hard facts: dates, venue, names. Condensed, capitalised, tightly tracked. */
+.t-fact {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+/* Connectors and the sign-off — the light italic hand on the ticket. */
+.t-script {
+  font-family: var(--font-script);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/*
+ * The poster voice. A heavy condensed face, skewed and outlined, standing in
+ * for hand-drawn brush lettering. Two stacked shadows give the rough double
+ * edge the painted original has.
+ */
+.t-brush {
+  font-family: var(--font-brush);
+  font-weight: 400;
+  text-transform: uppercase;
+  line-height: 0.86;
+  letter-spacing: 0.005em;
+  transform: skewX(-7deg);
+  transform-origin: left bottom;
+  -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.85);
+  paint-order: stroke fill;
+  text-shadow:
+    3px 4px 0 rgba(0, 0, 0, 0.9),
+    0 0 34px rgba(224, 38, 21, 0.35);
+}
+
+/* --- Metal and flame ------------------------------------------------------ */
+
+/* Brushed-gold fill for headline text. */
+.t-gold {
+  background: linear-gradient(
+    172deg,
+    var(--gold-bright) 0%,
+    var(--gold) 34%,
+    var(--gold-deep) 62%,
+    var(--gold-bright) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Flame fill — used for the second line of the wordmark. */
+.t-flame-text {
+  background: linear-gradient(
+    172deg,
+    var(--flame-bright) 0%,
+    var(--flame) 55%,
+    #9c1408 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Torn red banner behind a callout — brush-edged rather than a clean box. */
+.t-banner {
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(100deg, var(--flame) 0%, #b81c0d 100%);
+  clip-path: polygon(
+    1.2% 6%, 99% 0%, 100% 82%, 98.4% 100%, 2% 94%, 0% 16%
+  );
+}
+
+/* --- Frames --------------------------------------------------------------- */
+
+/* The thin gold hairline that outlines nearly every block on the ticket. */
+.t-frame {
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+  background:
+    linear-gradient(180deg, rgba(240, 180, 60, 0.045), rgba(0, 0, 0, 0)) ,
+    var(--card);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+/* Doubled hairline, for the pieces that need to feel framed like the portrait. */
+.t-frame-double {
+  position: relative;
+}
+.t-frame-double::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Dotted vertical rules between the four programme columns. */
+.t-dotted-x > * + * {
+  border-left: 1px dotted color-mix(in srgb, var(--gold) 38%, transparent);
+}
+
+/* --- Perforation ---------------------------------------------------------- */
+
+/*
+ * The tear line. A dashed rule with a notch bitten out of each edge, so a
+ * ticket on screen reads as something you could physically rip in half.
+ */
+.t-perforation {
+  position: relative;
+  height: 0;
+  border-top: 2px dashed color-mix(in srgb, var(--gold) 45%, transparent);
+}
+.t-perforation::before,
+.t-perforation::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+  transform: translateY(-50%);
+}
+.t-perforation::before { left: -13px; }
+.t-perforation::after  { right: -13px; }
+
+/* --- Stage atmosphere ----------------------------------------------------- */
+
+/* Warm glow bleeding up behind the hero, the way stage light does. */
+.t-stage-glow {
+  background:
+    radial-gradient(60% 55% at 50% 0%, rgba(224, 38, 21, 0.28), transparent 70%),
+    radial-gradient(45% 40% at 78% 22%, rgba(240, 180, 60, 0.20), transparent 72%),
+    radial-gradient(40% 35% at 18% 30%, rgba(255, 90, 31, 0.14), transparent 70%);
+}
+
+/* Ember specks. Static positions, drifting slowly — cheap, no JS. */
+@keyframes t-ember {
+  0%   { transform: translateY(12px); opacity: 0; }
+  18%  { opacity: 0.85; }
+  82%  { opacity: 0.55; }
+  100% { transform: translateY(-140px); opacity: 0; }
+}
+.t-ember {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px 1px rgba(255, 150, 40, 0.8);
+  animation: t-ember 9s var(--ease-in-out) infinite;
+}
+
+/* Fine grain, so the flat black reads as printed stock rather than a screen. */
+.t-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-ember { animation: none; opacity: 0.5; }
 }

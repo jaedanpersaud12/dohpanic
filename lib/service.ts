@@ -1,36 +1,34 @@
-import { db, getTicketByCode, ticketsForOrder, type Order, type Ticket } from "./db";
+import { and, eq, sql } from "drizzle-orm";
+import { db, schema } from "./db";
 import { newTicketCode, randomId, randomToken, verifyPayload } from "./codes";
 import { ticketsFor } from "./config";
+import type { Order, Ticket } from "./schema";
+
+const { orders, tickets, scans } = schema;
 
 /* ------------------------------------------------------------ new orders */
 
-export function createOrder(input: {
+export async function createOrder(input: {
   name: string;
   whatsapp: string;
   note?: string;
   claimedCents: number;
-  screenshot: string | null;
-}): Order {
-  const id = randomId("ord");
-  const token = randomToken();
-  db()
-    .prepare(
-      `INSERT INTO orders
-         (id, token, buyer_name, buyer_whatsapp, buyer_note,
-          claimed_cents, screenshot, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)`
-    )
-    .run(
-      id,
-      token,
-      input.name.trim(),
-      input.whatsapp.trim(),
-      input.note?.trim() || null,
-      input.claimedCents,
-      input.screenshot,
-      Date.now()
-    );
-  return db().prepare("SELECT * FROM orders WHERE id = ?").get(id) as Order;
+  screenshotKey: string | null;
+}): Promise<Order> {
+  const [row] = await db()
+    .insert(orders)
+    .values({
+      id: randomId("ord"),
+      token: randomToken(),
+      buyerName: input.name.trim(),
+      buyerWhatsapp: input.whatsapp.trim(),
+      buyerNote: input.note?.trim() || null,
+      claimedCents: input.claimedCents,
+      screenshotKey: input.screenshotKey,
+      status: "pending",
+    })
+    .returning();
+  return row;
 }
 
 /* -------------------------------------------------------------- approval */
@@ -38,20 +36,34 @@ export function createOrder(input: {
 export class ApprovalError extends Error {}
 
 /**
- * Issues tickets for a confirmed amount. Runs in a transaction so a crash
+ * Issues tickets for a confirmed amount, inside a transaction so a failure
  * halfway through can never leave an order approved with no codes attached.
- * Approving an already-approved order returns its existing tickets rather
- * than minting a second batch.
+ * The order row is locked FOR UPDATE, so two admins clicking approve at the
+ * same moment cannot both mint a batch.
  */
-export function approveOrder(orderId: string, approvedCents: number): Ticket[] {
-  const conn = db();
+export async function approveOrder(
+  orderId: string,
+  approvedCents: number,
+  decidedBy: string
+): Promise<Ticket[]> {
+  return db().transaction(async (tx) => {
+    const locked = await tx
+      .select()
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .for("update")
+      .limit(1);
 
-  const run = conn.transaction((): Ticket[] => {
-    const order = conn
-      .prepare("SELECT * FROM orders WHERE id = ?")
-      .get(orderId) as Order | undefined;
+    const order = locked[0];
     if (!order) throw new ApprovalError("That order no longer exists.");
-    if (order.status === "approved") return ticketsForOrder(orderId);
+
+    if (order.status === "approved") {
+      return tx
+        .select()
+        .from(tickets)
+        .where(eq(tickets.orderId, orderId))
+        .orderBy(tickets.seq);
+    }
 
     const { count } = ticketsFor(approvedCents);
     if (count < 1) {
@@ -60,19 +72,19 @@ export function approveOrder(orderId: string, approvedCents: number): Ticket[] {
       );
     }
 
-    const now = Date.now();
-    const insert = conn.prepare(
-      `INSERT INTO tickets (id, order_id, code, seq, status, created_at)
-       VALUES (?, ?, ?, ?, 'valid', ?)`
-    );
-
     for (let seq = 1; seq <= count; seq++) {
-      // Astronomically unlikely to collide, but a UNIQUE index plus a retry
-      // costs nothing and removes the failure mode entirely.
+      // A code collision is astronomically unlikely, but the UNIQUE index plus
+      // a retry costs nothing and removes the failure mode entirely.
       let inserted = false;
       for (let attempt = 0; attempt < 8 && !inserted; attempt++) {
         try {
-          insert.run(randomId("tkt"), orderId, newTicketCode(), seq, now);
+          await tx.insert(tickets).values({
+            id: randomId("tkt"),
+            orderId,
+            code: newTicketCode(),
+            seq,
+            status: "valid",
+          });
           inserted = true;
         } catch (err) {
           if (attempt === 7) throw err;
@@ -80,41 +92,50 @@ export function approveOrder(orderId: string, approvedCents: number): Ticket[] {
       }
     }
 
-    conn
-      .prepare(
-        `UPDATE orders
-            SET status = 'approved', approved_cents = ?, decided_at = ?,
-                reject_reason = NULL
-          WHERE id = ?`
-      )
-      .run(approvedCents, now, orderId);
+    await tx
+      .update(orders)
+      .set({
+        status: "approved",
+        approvedCents,
+        decidedBy,
+        decidedAt: new Date(),
+        rejectReason: null,
+      })
+      .where(eq(orders.id, orderId));
 
-    return ticketsForOrder(orderId);
+    return tx
+      .select()
+      .from(tickets)
+      .where(eq(tickets.orderId, orderId))
+      .orderBy(tickets.seq);
   });
-
-  return run();
 }
 
-export function rejectOrder(orderId: string, reason: string): void {
-  db()
-    .prepare(
-      `UPDATE orders
-          SET status = 'rejected', reject_reason = ?, decided_at = ?
-        WHERE id = ? AND status != 'approved'`
-    )
-    .run(reason.trim() || null, Date.now(), orderId);
+export async function rejectOrder(
+  orderId: string,
+  reason: string,
+  decidedBy: string
+) {
+  await db()
+    .update(orders)
+    .set({
+      status: "rejected",
+      rejectReason: reason.trim() || null,
+      decidedBy,
+      decidedAt: new Date(),
+    })
+    .where(and(eq(orders.id, orderId), sql`${orders.status} <> 'approved'`));
 }
 
-export function saveOcr(
+export async function saveOcr(
   orderId: string,
   cents: number | null,
   text: string
-): void {
-  db()
-    .prepare(
-      "UPDATE orders SET ocr_cents = ?, ocr_text = ?, ocr_ran_at = ? WHERE id = ?"
-    )
-    .run(cents, text.slice(0, 4000), Date.now(), orderId);
+) {
+  await db()
+    .update(orders)
+    .set({ ocrCents: cents, ocrText: text.slice(0, 4000), ocrRanAt: new Date() })
+    .where(eq(orders.id, orderId));
 }
 
 /* ------------------------------------------------------------- door scan */
@@ -128,60 +149,74 @@ export type ScanOutcome =
 
 /**
  * Verifies a scanned payload and, if it is good, burns the ticket.
- * The UPDATE is guarded on status='valid', so two doors scanning the same
- * code at the same moment can only produce one admission.
+ *
+ * The UPDATE is guarded on status = 'valid' and returns the rows it changed,
+ * so two doors scanning the same code at the same instant can only ever
+ * produce one admission — no explicit transaction needed.
  */
-export function redeem(rawPayload: string): ScanOutcome {
+export async function redeem(
+  rawPayload: string,
+  scannedBy: string
+): Promise<ScanOutcome> {
   const code = verifyPayload(rawPayload);
-  const conn = db();
-  const log = conn.prepare(
-    "INSERT INTO scans (code, result, at) VALUES (?, ?, ?)"
-  );
+
+  const log = (c: string, result: string) =>
+    db()
+      .insert(scans)
+      .values({ code: c.slice(0, 120), result, scannedBy })
+      .catch(() => {});
 
   if (!code) {
-    log.run(rawPayload.slice(0, 120), "forged", Date.now());
+    await log(rawPayload, "forged");
     return { result: "forged" };
   }
 
-  const outcome = conn.transaction((): ScanOutcome => {
-    const ticket = getTicketByCode(code);
-    if (!ticket) return { result: "unknown", code };
+  const claimed = await db()
+    .update(tickets)
+    .set({ status: "used", usedAt: new Date(), usedBy: scannedBy })
+    .where(and(eq(tickets.code, code), eq(tickets.status, "valid")))
+    .returning();
 
-    const order = conn
-      .prepare("SELECT * FROM orders WHERE id = ?")
-      .get(ticket.order_id) as Order;
+  if (claimed.length === 1) {
+    const ticket = claimed[0];
+    const [order] = await db()
+      .select()
+      .from(orders)
+      .where(eq(orders.id, ticket.orderId))
+      .limit(1);
+    await log(code, "valid");
+    return { result: "valid", code, ticket, order };
+  }
 
-    if (ticket.status === "void") return { result: "void", code, ticket, order };
-    if (ticket.status === "used") return { result: "used", code, ticket, order };
+  // Nothing was claimed: the code is either unknown or already spent.
+  const [ticket] = await db()
+    .select()
+    .from(tickets)
+    .where(eq(tickets.code, code))
+    .limit(1);
 
-    const now = Date.now();
-    const res = conn
-      .prepare(
-        "UPDATE tickets SET status = 'used', used_at = ? WHERE code = ? AND status = 'valid'"
-      )
-      .run(now, code);
+  if (!ticket) {
+    await log(code, "unknown");
+    return { result: "unknown", code };
+  }
 
-    if (res.changes === 0) {
-      const fresh = getTicketByCode(code)!;
-      return { result: "used", code, ticket: fresh, order };
-    }
+  const [order] = await db()
+    .select()
+    .from(orders)
+    .where(eq(orders.id, ticket.orderId))
+    .limit(1);
 
-    return {
-      result: "valid",
-      code,
-      ticket: { ...ticket, status: "used", used_at: now },
-      order,
-    };
-  })();
-
-  log.run(code, outcome.result, Date.now());
-  return outcome;
+  const result = ticket.status === "void" ? "void" : "used";
+  await log(code, result);
+  return { result, code, ticket, order } as ScanOutcome;
 }
 
 /** Puts a used ticket back — for the inevitable "I scanned it twice" moment. */
-export function unredeem(code: string): boolean {
-  const res = db()
-    .prepare("UPDATE tickets SET status = 'valid', used_at = NULL WHERE code = ?")
-    .run(code);
-  return res.changes > 0;
+export async function unredeem(code: string): Promise<boolean> {
+  const rows = await db()
+    .update(tickets)
+    .set({ status: "valid", usedAt: null, usedBy: null })
+    .where(eq(tickets.code, code))
+    .returning({ id: tickets.id });
+  return rows.length > 0;
 }

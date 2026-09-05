@@ -20,14 +20,14 @@ const H = 1180;
  */
 export function ReceiptMaker({ currency, bank }: Props) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const [amount, setAmount] = React.useState("500");
-  const [name, setName] = React.useState("Sam Ndlovu");
-  const [ref, setRef] = React.useState("SAM 0821234567");
-  const [balance, setBalance] = React.useState("12 480.63");
+  const [amount, setAmount] = React.useState("200");
+  const [name, setName] = React.useState("Anisa Mohammed");
+  const [ref, setRef] = React.useState("ANISA 8681234567");
+  const [balance, setBalance] = React.useState("12,480.63");
 
   const pretty = React.useMemo(() => {
     const n = parseFloat(amount.replace(/[^\d.]/g, "")) || 0;
-    return n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return n.toLocaleString("en-TT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }, [amount]);
 
   const draw = React.useCallback(() => {
@@ -83,9 +83,9 @@ export function ReceiptMaker({ currency, bank }: Props) {
       ["Amount", `${currency}${pretty}`],
       ["Paid to", bank.accountName],
       ["Account", bank.accountNumber],
-      ["Branch code", bank.branchCode],
+      ["Branch / transit", bank.branchCode],
       ["From", name],
-      ["Date", "20 Dec 2026, 09:41"],
+      ["Date", "20 Sep 2026, 09:41"],
       ["Fee", `${currency}0.00`],
       ["Available balance", `${currency}${balance}`],
     ];

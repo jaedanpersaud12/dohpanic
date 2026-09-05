@@ -6,8 +6,8 @@ import { baseUrl } from "./config";
  * HMAC signature. A door scanner can therefore reject a made-up code without
  * a database round trip, and nobody can derive a neighbour's code from theirs.
  *
- * QR payload  ->  MMY-7K2F-9QX4.a1b2c3d4e5f6g7h8
- * QR content  ->  {baseUrl}/v/MMY-7K2F-9QX4.a1b2c3d4e5f6g7h8
+ * QR payload  ->  DP-7K2F-9QX4.a1b2c3d4e5f6g7h8
+ * QR content  ->  {baseUrl}/v/DP-7K2F-9QX4.a1b2c3d4e5f6g7h8
  */
 
 /** Crockford-ish base32: no I, L, O, U — unambiguous when read aloud. */
@@ -40,7 +40,7 @@ function randomChars(n: number): string {
 }
 
 export function newTicketCode(): string {
-  return `MMY-${randomChars(4)}-${randomChars(4)}`;
+  return `DP-${randomChars(4)}-${randomChars(4)}`;
 }
 
 export function sign(code: string): string {
@@ -77,35 +77,11 @@ export function verifyPayload(raw: string): string | null {
 
   const code = text.slice(0, dot).toUpperCase();
   const givenSig = text.slice(dot + 1);
-  if (!/^MMY-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(code)) return null;
+  if (!/^DP-[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(code)) return null;
 
   const expected = sign(code);
   const a = Buffer.from(givenSig);
   const b = Buffer.from(expected);
   if (a.length !== b.length) return null;
   return crypto.timingSafeEqual(a, b) ? code : null;
-}
-
-/* ------------------------------------------------------------ admin auth */
-
-export function signSession(expiresAt: number): string {
-  const body = String(expiresAt);
-  const mac = crypto
-    .createHmac("sha256", secret())
-    .update(`session:${body}`)
-    .digest("base64url");
-  return `${body}.${mac}`;
-}
-
-export function verifySession(cookie: string | undefined): boolean {
-  if (!cookie) return false;
-  const dot = cookie.indexOf(".");
-  if (dot < 0) return false;
-  const body = cookie.slice(0, dot);
-  const expiresAt = Number(body);
-  if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) return false;
-  const expected = signSession(expiresAt);
-  const a = Buffer.from(cookie);
-  const b = Buffer.from(expected);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
 }

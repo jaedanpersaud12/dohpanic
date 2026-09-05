@@ -12,23 +12,11 @@ import {
   X,
 } from "lucide-react";
 import jsQR from "jsqr";
+import { scanAction, undoScanAction, type ScanResult } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SuccessCheck } from "@/components/success-check";
 import { cn, clockTime } from "@/lib/utils";
-
-type ScanResult = {
-  result: "valid" | "used" | "void" | "unknown" | "forged";
-  title: string;
-  detail: string;
-  code?: string;
-  name?: string;
-  seq?: number;
-  total?: number;
-  paid?: string;
-  note?: string | null;
-  usedAt?: number | null;
-};
 
 /** How long a result stays up before the camera starts looking again. */
 const HOLD_MS = 2600;
@@ -67,16 +55,12 @@ export function Scanner() {
     busyRef.current = true;
 
     try {
-      const res = await fetch("/api/admin/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload }),
-      });
-      const data = (await res.json()) as ScanResult;
-      setResult(data);
+      const res = await scanAction(payload);
+      if (!res.ok) throw new Error(res.error);
+      setResult(res.scan);
       setNonce((n) => n + 1);
       if (navigator.vibrate) {
-        navigator.vibrate(data.result === "valid" ? 60 : [50, 60, 50]);
+        navigator.vibrate(res.scan.result === "valid" ? 60 : [50, 60, 50]);
       }
     } catch {
       setResult({
@@ -179,11 +163,7 @@ export function Scanner() {
 
   async function undo() {
     if (!result?.code) return;
-    await fetch("/api/admin/scan", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "undo", code: result.code }),
-    });
+    await undoScanAction(result.code);
     lastRef.current = { text: "", at: 0 };
     setResult(null);
   }
@@ -324,7 +304,7 @@ export function Scanner() {
               <Input
                 value={manual}
                 onChange={(e) => setManual(e.target.value)}
-                placeholder="MMY-XXXX-XXXX.signature"
+                placeholder="DP-XXXX-XXXX.signature"
                 className="font-[family-name:var(--font-mono)] text-sm"
               />
               <Button type="submit" variant="accent" size="icon" className="size-12 shrink-0">

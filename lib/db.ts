@@ -1,142 +1,99 @@
-import Database from "better-sqlite3";
-import fs from "node:fs";
-import path from "node:path";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { and, desc, eq, sql } from "drizzle-orm";
+import * as schema from "./schema";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "tickets.db");
+/**
+ * Neon over WebSockets rather than the HTTP driver, because issuing a batch of
+ * tickets has to happen inside a real transaction.
+ */
 
-let _db: Database.Database | null = null;
-
-export function db(): Database.Database {
-  if (_db) return _db;
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const d = new Database(DB_PATH);
-  d.pragma("journal_mode = WAL");
-  d.pragma("foreign_keys = ON");
-  d.exec(SCHEMA);
-  _db = d;
-  return d;
+declare global {
+  // eslint-disable-next-line no-var
+  var __mummyPool: Pool | undefined;
 }
 
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS orders (
-  id              TEXT PRIMARY KEY,
-  token           TEXT NOT NULL UNIQUE,
-  buyer_name      TEXT NOT NULL,
-  buyer_whatsapp  TEXT NOT NULL,
-  buyer_note      TEXT,
-  claimed_cents   INTEGER NOT NULL DEFAULT 0,
-  ocr_cents       INTEGER,
-  ocr_text        TEXT,
-  ocr_ran_at      INTEGER,
-  approved_cents  INTEGER,
-  screenshot      TEXT,
-  status          TEXT NOT NULL DEFAULT 'pending',
-  reject_reason   TEXT,
-  created_at      INTEGER NOT NULL,
-  decided_at      INTEGER
-);
-
-CREATE TABLE IF NOT EXISTS tickets (
-  id          TEXT PRIMARY KEY,
-  order_id    TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  code        TEXT NOT NULL UNIQUE,
-  seq         INTEGER NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'valid',
-  used_at     INTEGER,
-  created_at  INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS scans (
-  id      INTEGER PRIMARY KEY AUTOINCREMENT,
-  code    TEXT NOT NULL,
-  result  TEXT NOT NULL,
-  at      INTEGER NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_orders_status  ON orders(status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_tickets_order  ON tickets(order_id, seq);
-CREATE INDEX IF NOT EXISTS idx_scans_at       ON scans(at DESC);
-`;
-
-export type OrderStatus = "pending" | "approved" | "rejected";
-
-export type Order = {
-  id: string;
-  token: string;
-  buyer_name: string;
-  buyer_whatsapp: string;
-  buyer_note: string | null;
-  claimed_cents: number;
-  ocr_cents: number | null;
-  ocr_text: string | null;
-  ocr_ran_at: number | null;
-  approved_cents: number | null;
-  screenshot: string | null;
-  status: OrderStatus;
-  reject_reason: string | null;
-  created_at: number;
-  decided_at: number | null;
-};
-
-export type Ticket = {
-  id: string;
-  order_id: string;
-  code: string;
-  seq: number;
-  status: "valid" | "used" | "void";
-  used_at: number | null;
-  created_at: number;
-};
-
-/* ---------------------------------------------------------------- queries */
-
-export function getOrder(id: string): Order | undefined {
-  return db().prepare("SELECT * FROM orders WHERE id = ?").get(id) as
-    | Order
-    | undefined;
+function pool(): Pool {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_URL is not set. Add your Neon connection string to .env.local."
+    );
+  }
+  // Reused across hot reloads in dev so we don't leak a pool per edit.
+  globalThis.__mummyPool ??= new Pool({ connectionString });
+  return globalThis.__mummyPool;
 }
 
-export function getOrderByToken(token: string): Order | undefined {
-  return db().prepare("SELECT * FROM orders WHERE token = ?").get(token) as
-    | Order
-    | undefined;
+let _db: ReturnType<typeof drizzle<typeof schema>> | null = null;
+
+export function db() {
+  _db ??= drizzle(pool(), { schema });
+  return _db;
 }
 
-export function listOrders(status?: OrderStatus): Order[] {
-  return status
-    ? (db()
-        .prepare(
-          "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC"
-        )
-        .all(status) as Order[])
-    : (db()
-        .prepare("SELECT * FROM orders ORDER BY created_at DESC")
-        .all() as Order[]);
-}
+export { schema };
+export type { Order, Ticket, OrderStatus } from "./schema";
 
-export function ticketsForOrder(orderId: string): Ticket[] {
-  return db()
-    .prepare("SELECT * FROM tickets WHERE order_id = ? ORDER BY seq")
-    .all(orderId) as Ticket[];
-}
+const { orders, tickets } = schema;
 
-export function getTicketByCode(code: string): Ticket | undefined {
-  return db().prepare("SELECT * FROM tickets WHERE code = ?").get(code) as
-    | Ticket
-    | undefined;
-}
+/* --------------------------------------------------------------- queries */
 
-export function counts() {
-  const row = db()
-    .prepare(
-      `SELECT
-         (SELECT COUNT(*) FROM orders  WHERE status = 'pending')  AS pending,
-         (SELECT COUNT(*) FROM orders  WHERE status = 'approved') AS approved,
-         (SELECT COUNT(*) FROM orders  WHERE status = 'rejected') AS rejected,
-         (SELECT COUNT(*) FROM tickets WHERE status = 'valid')    AS valid,
-         (SELECT COUNT(*) FROM tickets WHERE status = 'used')     AS used`
-    )
-    .get() as Record<string, number>;
+export async function getOrder(id: string) {
+  const [row] = await db().select().from(orders).where(eq(orders.id, id)).limit(1);
   return row;
+}
+
+export async function getOrderByToken(token: string) {
+  const [row] = await db()
+    .select()
+    .from(orders)
+    .where(eq(orders.token, token))
+    .limit(1);
+  return row;
+}
+
+export function listOrders(status?: schema.OrderStatus) {
+  const q = db().select().from(orders).orderBy(desc(orders.createdAt)).limit(200);
+  return status ? q.where(eq(orders.status, status)) : q;
+}
+
+export function ticketsForOrder(orderId: string) {
+  return db()
+    .select()
+    .from(tickets)
+    .where(eq(tickets.orderId, orderId))
+    .orderBy(tickets.seq);
+}
+
+export async function getTicketByCode(code: string) {
+  const [row] = await db()
+    .select()
+    .from(tickets)
+    .where(eq(tickets.code, code))
+    .limit(1);
+  return row;
+}
+
+export async function counts() {
+  const [row] = await db()
+    .select({
+      pending: sql<number>`(SELECT COUNT(*) FROM ${orders} WHERE ${orders.status} = 'pending')::int`,
+      approved: sql<number>`(SELECT COUNT(*) FROM ${orders} WHERE ${orders.status} = 'approved')::int`,
+      rejected: sql<number>`(SELECT COUNT(*) FROM ${orders} WHERE ${orders.status} = 'rejected')::int`,
+      valid: sql<number>`(SELECT COUNT(*) FROM ${tickets} WHERE ${tickets.status} = 'valid')::int`,
+      used: sql<number>`(SELECT COUNT(*) FROM ${tickets} WHERE ${tickets.status} = 'used')::int`,
+    })
+    .from(sql`(SELECT 1) AS _`);
+
+  return (
+    row ?? { pending: 0, approved: 0, rejected: 0, valid: 0, used: 0 }
+  );
+}
+
+export { and, eq };
+
+/** Drizzle hands back Date objects; the client components want millis. */
+export function ms(ts: Date | null | undefined): number {
+  return ts ? ts.getTime() : 0;
 }

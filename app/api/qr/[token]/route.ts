@@ -7,9 +7,9 @@ export const runtime = "nodejs";
 /**
  * GET /api/qr/{orderToken}?n={ticketNumber}
  *
- * QR images are addressed by the order's secret token plus the ticket number,
- * never by the ticket code itself — otherwise this endpoint would hand out a
- * valid signature for any code somebody managed to guess.
+ * Addressed by the order's secret token plus the ticket number, never by the
+ * ticket code — otherwise this endpoint would hand out a valid signature for
+ * any code somebody managed to guess.
  */
 export async function GET(
   req: Request,
@@ -18,12 +18,12 @@ export async function GET(
   const { token } = await params;
   const n = Number(new URL(req.url).searchParams.get("n") ?? "1");
 
-  const order = getOrderByToken(token);
+  const order = await getOrderByToken(token);
   if (!order || order.status !== "approved") {
     return new Response("Not found", { status: 404 });
   }
 
-  const ticket = ticketsForOrder(order.id).find((t) => t.seq === n);
+  const ticket = (await ticketsForOrder(order.id)).find((t) => t.seq === n);
   if (!ticket) return new Response("Not found", { status: 404 });
 
   const png = await QRCode.toBuffer(qrUrlFor(ticket.code), {

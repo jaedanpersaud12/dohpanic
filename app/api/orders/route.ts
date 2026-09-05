@@ -1,18 +1,17 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { randomId } from "@/lib/codes";
 import { ticketsFor } from "@/lib/config";
 import { createOrder } from "@/lib/service";
+import { putScreenshot } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const EXT: Record<string, string> = {
-  "image/png": ".png",
-  "image/jpeg": ".jpg",
-  "image/webp": ".webp",
-  "image/heic": ".heic",
-  "image/gif": ".gif",
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/heic": "heic",
+  "image/gif": "gif",
 };
 
 export async function POST(req: Request) {
@@ -43,26 +42,25 @@ export async function POST(req: Request) {
     if (file.size > MAX_BYTES) {
       return Response.json({ error: "That image is over 8MB." }, { status: 400 });
     }
-    // Trust the bytes, not the name the browser sent.
+    // Trust the declared type against an allowlist, not the filename.
     const ext = EXT[file.type];
     if (!ext) {
       return Response.json({ error: "Upload a PNG, JPG or WebP image." }, { status: 400 });
     }
 
-    const filename = `${randomId("shot")}${ext}`;
-    const dir = path.join(process.cwd(), "uploads");
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(
-      path.join(dir, filename),
-      Buffer.from(await file.arrayBuffer())
+    const key = `screenshots/${new Date().toISOString().slice(0, 10)}/${randomId("shot")}.${ext}`;
+    await putScreenshot(
+      key,
+      new Uint8Array(await file.arrayBuffer()),
+      file.type
     );
 
-    const order = createOrder({
+    const order = await createOrder({
       name,
       whatsapp,
       note,
       claimedCents,
-      screenshot: filename,
+      screenshotKey: key,
     });
 
     return Response.json({
@@ -71,7 +69,7 @@ export async function POST(req: Request) {
       tickets: ticketsFor(claimedCents).count,
     });
   } catch (err) {
-    console.error("[orders] ", err);
+    console.error("[orders]", err);
     return Response.json(
       { error: "We couldn't save that. Try again in a moment." },
       { status: 500 }

@@ -1,0 +1,310 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   DESIGN TOKENS — palette after rareui.com, motion after transitions.dev
+   =========================================================================== */
+
+:root {
+  --background: #ffffff;
+  --foreground: #333333;
+  --card: #ebebeb;
+  --card-foreground: #333333;
+  --popover: #ffffff;
+  --popover-foreground: #333333;
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f4f6;
+  --secondary-foreground: #4b5563;
+  --muted: #f9fafb;
+  --muted-foreground: #6b7280;
+  --accent: #fc4c01;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #fc4c01;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #e5e5e5;
+  --card: #121212;
+  --card-foreground: #ffffff;
+  --popover: #171717;
+  --popover-foreground: #e5e5e5;
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+  --secondary: #121212;
+  --secondary-foreground: #ffffff;
+  --muted: #171717;
+  --muted-foreground: #a3a3a3;
+  --accent: #fc4c01;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --border: #262626;
+  --input: #404040;
+  --ring: #fc4c01;
+}
+
+/* --- Motion scale — transitions.dev tokens -------------------------------- */
+:root {
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-bounce-strong: cubic-bezier(0.34, 1.96, 0.64, 1);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-figtree), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-mono-code), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  h1 { letter-spacing: -0.032em; }
+  input, textarea, select, button { font: inherit; }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+/* ===========================================================================
+   MOTION — recipes built on the transitions.dev token scale.
+   Rule of thumb everywhere below: OPEN is slower and bouncier than CLOSE.
+   =========================================================================== */
+
+/* Texts reveal — lines rise with offset stagger */
+@keyframes t-rise {
+  from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+.t-rise {
+  animation: t-rise var(--duration-very-slow) var(--ease-bounce) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Fade + lift, the workhorse enter */
+@keyframes t-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.t-enter {
+  animation: t-enter var(--duration-slow) var(--ease-smooth-out) both;
+  animation-delay: calc(var(--i, 0) * var(--duration-stagger));
+}
+
+/* Modal / panel open: open 250ms bouncy, close 150ms smooth */
+@keyframes t-pop-in {
+  from { opacity: 0; transform: scale(0.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.t-pop-in { animation: t-pop-in var(--duration-fast) var(--ease-bounce) both; }
+
+/* Toast / banner rise — fade, blur and scale */
+@keyframes t-toast-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.t-toast-in { animation: t-toast-in var(--duration-medium) var(--ease-bounce) both; }
+
+/* Success check — blur and rotate in */
+@keyframes t-check-pop {
+  from { opacity: 0; transform: scale(0.4) rotate(-24deg); filter: blur(8px); }
+  60%  { opacity: 1; transform: scale(1.08) rotate(4deg);  filter: blur(0); }
+  to   { opacity: 1; transform: scale(1) rotate(0);        filter: blur(0); }
+}
+.t-check-pop { animation: t-check-pop var(--duration-very-slow) var(--ease-smooth-out) both; }
+
+@keyframes t-draw {
+  from { stroke-dashoffset: var(--len, 48); }
+  to   { stroke-dashoffset: 0; }
+}
+.t-draw {
+  stroke-dasharray: var(--len, 48);
+  animation: t-draw var(--duration-very-slow) var(--ease-smooth-out) both;
+  animation-delay: var(--duration-micro);
+}
+
+/* Error state shake */
+@keyframes t-shake {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(-10px); }
+  30%  { transform: translateX(9px); }
+  45%  { transform: translateX(-6px); }
+  60%  { transform: translateX(4px); }
+  75%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+.t-shake { animation: t-shake 420ms var(--ease-smooth-out) both; }
+
+/* Number pop-in — digit flip with blur */
+@keyframes t-number-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.8); filter: blur(6px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+.t-number-pop { animation: t-number-pop var(--duration-slow) var(--ease-bounce-strong) both; }
+
+/* Icon swap — scale and blur */
+.t-icon-swap { display: grid; place-items: center; }
+.t-icon-swap > * {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--duration-fast) var(--ease-smooth-out),
+    transform var(--duration-fast) var(--ease-bounce),
+    filter var(--duration-fast) var(--ease-smooth-out);
+}
+.t-icon-swap > [data-state="hidden"] {
+  opacity: 0;
+  transform: scale(0.6);
+  filter: blur(4px);
+}
+.t-icon-swap > [data-state="shown"] {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+/* Shimmer text — masked gradient sweep, 2000ms linear */
+@keyframes t-shimmer { to { background-position: -200% 0; } }
+.t-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted-foreground) 0%,
+    var(--muted-foreground) 40%,
+    var(--foreground) 50%,
+    var(--muted-foreground) 60%,
+    var(--muted-foreground) 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: t-shimmer 2000ms linear infinite;
+}
+
+/* Skeleton pulse */
+@keyframes t-pulse { 50% { opacity: 0.45; } }
+.t-pulse { animation: t-pulse 1000ms var(--ease-in-out) infinite; }
+
+/* Accordion — grid-rows height, 250ms */
+.t-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-fast) var(--ease-smooth-out);
+}
+.t-collapse[data-open="true"] { grid-template-rows: 1fr; }
+.t-collapse > div { overflow: hidden; }
+
+/* Press feedback for buttons */
+.t-press {
+  transition:
+    transform var(--duration-medium) var(--ease-bounce-strong),
+    background-color var(--duration-quick) var(--ease-smooth-out),
+    border-color var(--duration-quick) var(--ease-smooth-out),
+    opacity var(--duration-quick) var(--ease-smooth-out),
+    box-shadow var(--duration-fast) var(--ease-smooth-out);
+}
+.t-press:active:not(:disabled) {
+  transform: scale(0.96);
+  transition-duration: var(--duration-micro);
+}
+
+/* Card hover lift */
+.t-lift {
+  transition:
+    transform var(--duration-fast) var(--ease-smooth-out),
+    border-color var(--duration-fast) var(--ease-smooth-out),
+    background-color var(--duration-fast) var(--ease-smooth-out);
+}
+.t-lift:hover { transform: translateY(-2px); }
+
+/* Scanner reticle sweep */
+@keyframes t-scanline {
+  0%   { transform: translateY(0%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(1000%); opacity: 0; }
+}
+.t-scanline { animation: t-scanline 2200ms var(--ease-in-out) infinite; }
+
+/* Ambient accent glow behind the hero */
+@keyframes t-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(3%, -4%, 0) scale(1.08); }
+}
+.t-drift { animation: t-drift 14s var(--ease-in-out) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .t-shimmer { animation: none; color: var(--muted-foreground); }
+}

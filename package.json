@@ -9,7 +9,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:integration": "tsx scripts/integration-test.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",

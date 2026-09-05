@@ -30,6 +30,9 @@ npm run dev
 > corrupt each other's chunks, which shows up as routes randomly 404ing and
 > `__webpack_modules__[moduleId] is not a function`. If the app starts behaving
 > strangely, kill every node process, delete `.next`, and start again.
+>
+> For the same reason, stop the dev server before `npm run build` — they share
+> `.next`, and running both at once fails with missing generated type files.
 
 ### Neon
 
@@ -39,11 +42,25 @@ driver, because issuing a batch of tickets has to run inside a real transaction.
 
 ### Clerk
 
-Only staff and door workers sign in; buyers never do. Create the Clerk app, add
-your people, and put the publishable/secret keys in `.env.local`. Middleware
-protects `/admin` and `/v`, and **every Server Action re-checks auth itself** —
-a route-matcher mistake shouldn't be the only thing between a stranger and
-issuing tickets.
+Only staff and door workers sign in; buyers never do. Create the Clerk app and
+put the publishable/secret keys in `.env.local`. Sign-in is served in-app at
+`/sign-in`, not Clerk's hosted portal.
+
+**Being signed in is not the same as being staff.** Clerk sign-up is public by
+default, so "has an account" would let anyone on the internet approve payments
+and burn tickets. Access needs an explicit grant, by either:
+
+- `STAFF_EMAILS` — comma-separated allowlist in the environment, or
+- `publicMetadata.role = "staff"` on the user in the Clerk dashboard
+
+With neither set, nobody is staff — it fails closed. Someone signed in without a
+grant sees a "Not on the door list" screen naming the address they used, so
+adding them is obvious. Setting Clerk sign-ups to invitation-only is worth doing
+too, but this check is what actually holds the door.
+
+Middleware protects `/admin` and `/v`, and **every Server Action re-checks auth
+itself** — a route-matcher mistake shouldn't be the only thing between a
+stranger and issuing tickets.
 
 ### Cloudflare R2
 
@@ -116,6 +133,21 @@ can read them — but that URL only forwards into the Clerk-protected scanner. A
 guest scanning their own ticket gets a sign-in screen, not an admission.
 
 ---
+
+## Tests
+
+```bash
+npm run test:integration
+```
+
+Drives the real service layer against your Neon database — issuing, the
+approval transaction, signature forgery, double-scan, undo, underpayment,
+rejection and the WhatsApp message. It creates its own rows and deletes them
+again, so it is safe to run against a live database (it will not touch orders it
+did not create).
+
+It does not cover the browser: camera scanning and Clerk sign-in need a real
+device and a real person.
 
 ## Testing without moving money
 

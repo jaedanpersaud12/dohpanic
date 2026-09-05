@@ -164,19 +164,33 @@ export default function Home() {
 
         {/* ------------------------------------------------------- programme */}
         <section className="mt-20">
-          <div className="t-frame t-dotted-x grid grid-cols-2 gap-y-8 rounded-2xl px-4 py-8 sm:px-6 lg:grid-cols-4">
+          {/*
+           * The columns are equal-height grid cells. Badge and role sit at the
+           * top of each, the gold name at the bottom with its note just above,
+           * so both ends line up across the row without any line being held
+           * open: the notes only ever eat into the slack in the middle.
+           */}
+          <div className="t-frame t-dotted-x grid grid-cols-2 rounded-2xl px-2 py-9 sm:px-4 lg:grid-cols-4">
             {PROGRAMME.map(({ role, name, note, Icon }, i) => (
               <div
                 key={role}
-                className="t-enter flex flex-col items-center px-3 text-center"
+                className="t-enter flex flex-col items-center px-3 text-center sm:px-5"
                 style={{ ["--i" as string]: i + 1 }}
               >
-                <p className="t-fact text-[10px] leading-tight text-[var(--muted-foreground)]">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full border border-[var(--gold)]/35 bg-black/40">
+                  <Icon className="size-[18px] text-[var(--gold)]" />
+                </span>
+                <p className="t-fact mt-4 text-[10px] leading-tight tracking-[0.16em] text-[var(--muted-foreground)]">
                   {role}
                 </p>
-                {note && <p className="t-fact mt-2 text-[10px] text-white/70">{note}</p>}
-                <p className="t-gold t-fact mt-2 text-2xl font-bold leading-tight">{name}</p>
-                <Icon className="mt-3 size-6 text-[var(--gold)]/70" />
+                <div className="mt-auto pt-4">
+                  {note && (
+                    <p className="t-fact text-[10px] leading-tight text-white/55">{note}</p>
+                  )}
+                  <p className="t-gold t-fact mt-1.5 text-xl font-bold leading-none sm:text-2xl">
+                    {name}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
@@ -206,57 +220,61 @@ export default function Home() {
         <Perforation className="mx-6 mt-16" />
 
         {/* --------------------------------------------------------- payment */}
-        <section
-          id="buy"
-          className="mt-16 grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] lg:items-start"
-        >
-          {/* bank details */}
-          <div
-            className="t-enter t-frame t-frame-double rounded-2xl p-6 sm:p-8 lg:sticky lg:top-6"
-            style={{ ["--i" as string]: 1 }}
-          >
-            <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/50">
-                <Landmark className="size-4 text-[var(--gold)]" />
-              </span>
-              <div>
-                <h2 className="t-gold text-xl">Transfer to</h2>
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  Then upload your proof
+        <section id="buy" className="t-enter mt-16">
+          <div className="t-frame t-frame-double overflow-hidden rounded-2xl">
+            <div className="grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
+              {/* ------------------------------------------- where to pay */}
+              <div className="flex flex-col p-6 sm:p-8">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--gold)]/40 bg-black/50">
+                    <Landmark className="size-4 text-[var(--gold)]" />
+                  </span>
+                  <div>
+                    <h2 className="t-gold text-xl">Transfer to</h2>
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      Then upload your proof
+                    </p>
+                  </div>
+                </div>
+
+                <dl className="mt-7 divide-y divide-[var(--border)]">
+                  {BANK_ROWS.map((row) => (
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between gap-4 py-3.5"
+                    >
+                      <div className="min-w-0">
+                        <dt className="t-fact text-[10px] text-[var(--muted-foreground)]">
+                          {row.label}
+                        </dt>
+                        <dd className="mt-1 truncate font-[family-name:var(--font-mono)] text-[15px] text-white">
+                          {row.value}
+                        </dd>
+                      </div>
+                      {row.copy && <CopyButton value={row.value} label={row.label} />}
+                    </div>
+                  ))}
+                </dl>
+
+                {/* mt-auto pins this to the bottom, so both halves end level */}
+                <p className="mt-auto flex items-start gap-2.5 pt-8 text-xs leading-relaxed text-[var(--muted-foreground)]">
+                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--success)]" />
+                  <span>
+                    Put your name and WhatsApp number in the reference so we can
+                    match the payment to you quickly. Every dollar goes towards{" "}
+                    {CAUSE.beneficiary}&apos;s medical expenses.
+                  </span>
                 </p>
               </div>
+
+              {/* the tear line — paying on one side, proving it on the other */}
+              <div className="border-t border-dashed border-[var(--gold)]/30 p-6 sm:p-8 lg:border-l lg:border-t-0">
+                <PaymentForm
+                  currency={EVENT.currency}
+                  priceCents={EVENT.ticketPriceCents}
+                />
+              </div>
             </div>
-
-            <dl className="mt-7 divide-y divide-[var(--border)]">
-              {BANK_ROWS.map((row) => (
-                <div
-                  key={row.label}
-                  className="flex items-center justify-between gap-4 py-3.5"
-                >
-                  <div className="min-w-0">
-                    <dt className="t-fact text-[10px] text-[var(--muted-foreground)]">
-                      {row.label}
-                    </dt>
-                    <dd className="mt-1 truncate font-[family-name:var(--font-mono)] text-[15px] text-white">
-                      {row.value}
-                    </dd>
-                  </div>
-                  {row.copy && <CopyButton value={row.value} label={row.label} />}
-                </div>
-              ))}
-            </dl>
-
-            <p className="mt-6 flex items-start gap-2.5 rounded-xl border border-[var(--gold)]/25 bg-black/40 px-4 py-3 text-xs leading-relaxed text-[var(--muted-foreground)]">
-              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[var(--success)]" />
-              Put your name and WhatsApp number in the reference so we can match the
-              payment to you quickly. Every dollar goes towards {CAUSE.beneficiary}
-              &apos;s medical expenses.
-            </p>
-          </div>
-
-          {/* upload form */}
-          <div className="t-enter" style={{ ["--i" as string]: 2 }}>
-            <PaymentForm currency={EVENT.currency} priceCents={EVENT.ticketPriceCents} />
           </div>
         </section>
 

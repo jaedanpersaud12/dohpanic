@@ -450,9 +450,33 @@
   pointer-events: none;
 }
 
-/* Dotted vertical rules between the four programme columns. */
-.t-dotted-x > * + * {
+/*
+ * Dotted rules between the programme columns. The grid is two-up on small
+ * screens and four-up from lg, so the rules have to follow it: vertical
+ * between neighbours in a row, horizontal between the two stacked rows.
+ */
+.t-dotted-x > * {
   border-left: 1px dotted color-mix(in srgb, var(--gold) 38%, transparent);
+}
+.t-dotted-x > *:nth-child(2n + 1) {
+  border-left: none;
+}
+.t-dotted-x > *:nth-child(n + 3) {
+  margin-top: 2.25rem;
+  padding-top: 2.25rem;
+  border-top: 1px dotted color-mix(in srgb, var(--gold) 30%, transparent);
+}
+
+@media (min-width: 64rem) {
+  .t-dotted-x > *:nth-child(n) {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    border-left: 1px dotted color-mix(in srgb, var(--gold) 38%, transparent);
+  }
+  .t-dotted-x > *:nth-child(4n + 1) {
+    border-left: none;
+  }
 }
 
 /* --- Perforation ---------------------------------------------------------- */

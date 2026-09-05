@@ -64,7 +64,7 @@ export function PaymentForm({ currency, priceCents }: Props) {
 
   if (done) {
     return (
-      <div className="t-pop-in t-frame t-frame-double flex flex-col items-center rounded-2xl p-10 text-center">
+      <div className="t-pop-in flex flex-col items-center py-8 text-center">
         <SuccessCheck />
         <h3 className="t-gold mt-6 text-2xl">Sent through</h3>
         <p className="mt-2 max-w-sm text-sm leading-relaxed text-[var(--muted-foreground)]">
@@ -87,7 +87,7 @@ export function PaymentForm({ currency, priceCents }: Props) {
   return (
     <form
       onSubmit={submit}
-      className="t-frame t-frame-double rounded-2xl p-6 sm:p-8"
+      className="w-full"
     >
       <h2 className="t-gold text-xl">Send your proof of payment</h2>
       <p className="mt-1.5 text-sm text-[var(--muted-foreground)]">

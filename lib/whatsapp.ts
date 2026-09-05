@@ -30,7 +30,14 @@ export function whatsappLink(number: string, message: string): string {
   )}`;
 }
 
-/** The "here are your N tickets" message, ready to paste or deep-link. */
+/**
+ * The "here are your N tickets" message.
+ *
+ * For a single ticket we send the ticket itself. For several we deliberately
+ * do NOT list every code: that invites forwarding the whole set to everybody,
+ * which is how people end up at the door unsure which QR is theirs. Instead we
+ * point at the order page, where each ticket has its own link and send button.
+ */
 export function approvalMessage(order: Order, tickets: Ticket[]): string {
   const paid = order.approvedCents ?? 0;
   const { remainderCents } = ticketsFor(paid);
@@ -46,8 +53,20 @@ export function approvalMessage(order: Order, tickets: Ticket[]): string {
     }*.`
   );
   lines.push("");
-  lines.push(n === 1 ? "Your code:" : "Your codes:");
-  for (const t of tickets) lines.push(`${t.seq}. ${t.code}`);
+
+  if (n === 1 && tickets[0].shareToken) {
+    lines.push("Here's your ticket:");
+    lines.push(`${baseUrl()}/t/${tickets[0].shareToken}`);
+    lines.push("");
+    lines.push(`Code: ${tickets[0].code}`);
+  } else {
+    lines.push("Open your tickets here:");
+    lines.push(`${baseUrl()}/o/${order.token}`);
+    lines.push("");
+    lines.push(
+      "Each ticket has its own Send button on that page — tap it to pass a ticket straight to whoever it's for, so nobody has to work out which QR is theirs."
+    );
+  }
 
   if (remainderCents > 0) {
     lines.push("");
@@ -57,13 +76,12 @@ export function approvalMessage(order: Order, tickets: Ticket[]): string {
   }
 
   lines.push("");
-  lines.push("Open your QR codes here:");
-  lines.push(`${baseUrl()}/o/${order.token}`);
-  lines.push("");
   lines.push(`📅 ${EVENT.date} · ${EVENT.timeRange}`);
   lines.push(`📍 ${EVENT.venue}`);
   lines.push(
-    "Show a QR at the door. Each code admits one person and works once — don't forward them around."
+    n === 1
+      ? "Show the QR at the door. It admits one person and works once."
+      : "Each code admits one person and works once — don't forward them around."
   );
   lines.push("");
   lines.push(`Thank you for supporting ${CAUSE.beneficiary}. 🎗️`);

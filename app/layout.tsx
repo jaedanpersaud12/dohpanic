@@ -35,9 +35,44 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         variables: {
-          colorPrimary: "#f0b43c",
+          /*
+           * Clerk generates its whole grayscale from colorNeutral, which
+           * defaults to black — on this near-black card that renders the
+           * labels, borders and inputs invisible. Anchoring it to white and
+           * pinning the foreground/input colours puts the widget back on the
+           * ticket palette from globals.css.
+           */
+          colorNeutral: "#ffffff",
           colorBackground: "#120d09",
+          colorForeground: "#ece4d8",
+          colorMuted: "#17110b",
+          colorMutedForeground: "#a3937c",
+          colorPrimary: "#f0b43c",
+          colorPrimaryForeground: "#0a0705",
+          colorInput: "#17110b",
+          colorInputForeground: "#ece4d8",
+          colorBorder: "#3a2a14",
+          colorRing: "#f0b43c",
+          colorShadow: "#000000",
+          colorModalBackdrop: "#0a0705",
+          colorDanger: "#e02615",
+          colorSuccess: "#35c46a",
+          colorWarning: "#f0b43c",
+          fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
+          fontFamilyMono: "var(--font-mono-code), ui-monospace, monospace",
           borderRadius: "0.75rem",
+        },
+        elements: {
+          /*
+           * Clerk paints colorBorder at ~11% alpha, which disappears on the
+           * ink background. Pin the field chrome to the same solid border and
+           * translucent-black fill the site's own <Input> uses.
+           */
+          card: { borderColor: "#3a2a14" },
+          formFieldInput: {
+            borderColor: "#4a3418",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+          },
         },
       }}
     >

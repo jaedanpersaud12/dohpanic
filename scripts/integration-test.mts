@@ -22,6 +22,9 @@ const {
   redeem,
   unredeem,
   ApprovalError,
+  getTicketByShareToken,
+  nameTicket,
+  markTicketShared,
 } = await import("../lib/service");
 const { payloadFor, qrUrlFor, verifyPayload, sign } = await import("../lib/codes");
 const { approvalMessage, whatsappLink, normalizeNumber } = await import("../lib/whatsapp");
@@ -72,7 +75,7 @@ try {
   const fresh = (await db().select().from(schema.orders).where(eq(schema.orders.id, order.id)))[0];
   const msg = approvalMessage(fresh, tickets);
   ok("names 5 tickets", /\*5 tickets\*/.test(msg));
-  ok("lists 5 codes", (msg.match(/DP-/g) ?? []).length === 5);
+  ok("does NOT dump every code into one message", (msg.match(/DP-/g) ?? []).length === 0);
   ok("carries the order link", msg.includes(`/o/${order.token}`));
   ok("mentions the cause", /Parris Persaud/.test(msg));
   const link = whatsappLink(fresh.buyerWhatsapp, msg);
@@ -135,7 +138,42 @@ try {
   ok("marked rejected", rejected.status === "rejected");
   ok("reason stored", rejected.rejectReason === "Nothing arrived");
 
-  console.log("\n10. Buyer lookup by token");
+  console.log("\n10. Per-ticket sharing");
+  ok("every ticket has a share token", tickets.every((t) => Boolean(t.shareToken)));
+  ok("share tokens are unique", new Set(tickets.map((t) => t.shareToken)).size === 5);
+  ok("share token is not the code", tickets.every((t) => t.shareToken !== t.code));
+
+  const shared = await getTicketByShareToken(tickets[1].shareToken!);
+  ok("share token resolves to one ticket", shared?.ticket.id === tickets[1].id);
+  ok("and carries its order", shared?.order.id === order.id);
+  ok("unknown share token resolves to nothing", (await getTicketByShareToken("nope")) === undefined);
+
+  ok("naming a ticket works", await nameTicket(order.token, tickets[1].id, "Kavir"));
+  ok("name is stored", (await getTicketByShareToken(tickets[1].shareToken!))?.ticket.assignedName === "Kavir");
+  ok("marking shared works", await markTicketShared(order.token, tickets[1].id));
+  ok("sharedAt is set", Boolean((await getTicketByShareToken(tickets[1].shareToken!))?.ticket.sharedAt));
+
+  // One buyer's token must not reach into another buyer's order.
+  const otherOrder = await createOrder({
+    name: "Someone Else", whatsapp: "8685550199", claimedCents: 20_000, screenshotKey: null,
+  });
+  created.push(otherOrder.id);
+  const otherTickets = await approveOrder(otherOrder.id, 20_000, "user_test");
+  ok("cannot rename a ticket in another order", !(await nameTicket(order.token, otherTickets[0].id, "hijack")));
+  ok("cannot mark another order's ticket shared", !(await markTicketShared(order.token, otherTickets[0].id)));
+  ok("that ticket is untouched", (await getTicketByShareToken(otherTickets[0].shareToken!))?.ticket.assignedName === null);
+
+  console.log("\n11. Message points at per-ticket sending");
+  ok("multi-ticket message links the order page", msg.includes("/o/" + order.token));
+  const singleRow = (await db().select().from(schema.orders).where(eq(schema.orders.id, otherOrder.id)))[0];
+  const single = approvalMessage(singleRow, otherTickets);
+  ok("single-ticket message links that ticket", single.includes("/t/" + otherTickets[0].shareToken));
+  ok("single-ticket message shows its code", single.includes(otherTickets[0].code));
+
+  console.log("\n--- single-ticket message ---");
+  console.log(single.split("\n").map((l) => "  | " + l).join("\n"));
+
+  console.log("\n12. Buyer lookup by token");
   const byToken = await getOrderByToken(order.token);
   ok("token lookup works", byToken?.id === order.id);
   ok("counts() returns numbers", typeof (await counts()).valid === "number");

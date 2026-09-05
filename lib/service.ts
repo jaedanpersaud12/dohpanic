@@ -83,6 +83,7 @@ export async function approveOrder(
             orderId,
             code: newTicketCode(),
             seq,
+            shareToken: randomToken(),
             status: "valid",
           });
           inserted = true;
@@ -219,4 +220,71 @@ export async function unredeem(code: string): Promise<boolean> {
     .where(eq(tickets.code, code))
     .returning({ id: tickets.id });
   return rows.length > 0;
+}
+
+
+/* ------------------------------------------------------ sharing a ticket */
+
+/**
+ * Everything below is reached with the buyer's own order token — no staff
+ * login. The token is the buyer's secret, and each helper re-checks that the
+ * ticket really belongs to that order, so holding one order's link never lets
+ * you rename or claim somebody else's ticket.
+ */
+
+export async function getTicketByShareToken(shareToken: string) {
+  const [row] = await db()
+    .select()
+    .from(tickets)
+    .where(eq(tickets.shareToken, shareToken))
+    .limit(1);
+  if (!row) return undefined;
+  const [order] = await db()
+    .select()
+    .from(orders)
+    .where(eq(orders.id, row.orderId))
+    .limit(1);
+  return { ticket: row, order };
+}
+
+async function ticketInOrder(orderToken: string, ticketId: string) {
+  const [order] = await db()
+    .select()
+    .from(orders)
+    .where(eq(orders.token, orderToken))
+    .limit(1);
+  if (!order) return null;
+  const [ticket] = await db()
+    .select()
+    .from(tickets)
+    .where(and(eq(tickets.id, ticketId), eq(tickets.orderId, order.id)))
+    .limit(1);
+  return ticket ?? null;
+}
+
+export async function nameTicket(
+  orderToken: string,
+  ticketId: string,
+  name: string
+): Promise<boolean> {
+  const ticket = await ticketInOrder(orderToken, ticketId);
+  if (!ticket) return false;
+  await db()
+    .update(tickets)
+    .set({ assignedName: name.trim().slice(0, 60) || null })
+    .where(eq(tickets.id, ticket.id));
+  return true;
+}
+
+export async function markTicketShared(
+  orderToken: string,
+  ticketId: string
+): Promise<boolean> {
+  const ticket = await ticketInOrder(orderToken, ticketId);
+  if (!ticket) return false;
+  await db()
+    .update(tickets)
+    .set({ sharedAt: new Date() })
+    .where(eq(tickets.id, ticket.id));
+  return true;
 }

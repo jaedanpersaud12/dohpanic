@@ -7,6 +7,8 @@ import { getOrder, ms, ticketsForOrder } from "@/lib/db";
 import {
   ApprovalError,
   approveOrder,
+  markTicketShared,
+  nameTicket,
   redeem,
   rejectOrder,
   saveOcr,
@@ -217,6 +219,45 @@ export async function undoScanAction(
     const done = await unredeem(code);
     if (!done) return { ok: false, error: "That code isn't in the system." };
     revalidatePath("/admin/scan");
+    return { ok: true };
+  } catch (err) {
+    return failed(err);
+  }
+}
+
+
+/* -------------------------------------------------- buyer: sharing tickets */
+
+/**
+ * These two are reached with the buyer's own order token rather than a staff
+ * login — that token is their secret, and the service layer re-checks that the
+ * ticket really belongs to it. Neither can change anything that affects
+ * whether a ticket is valid, so the blast radius is a label and a timestamp.
+ */
+
+export async function nameTicketAction(
+  orderToken: string,
+  ticketId: string,
+  name: string
+): Promise<ActionResult<object>> {
+  try {
+    const done = await nameTicket(orderToken, ticketId, name);
+    if (!done) return { ok: false, error: "We couldn't find that ticket." };
+    revalidatePath(`/o/${orderToken}`);
+    return { ok: true };
+  } catch (err) {
+    return failed(err);
+  }
+}
+
+export async function markTicketSharedAction(
+  orderToken: string,
+  ticketId: string
+): Promise<ActionResult<object>> {
+  try {
+    const done = await markTicketShared(orderToken, ticketId);
+    if (!done) return { ok: false, error: "We couldn't find that ticket." };
+    revalidatePath(`/o/${orderToken}`);
     return { ok: true };
   } catch (err) {
     return failed(err);

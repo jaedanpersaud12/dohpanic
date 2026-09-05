@@ -120,6 +120,32 @@ OCR runs **in the admin's browser**, not on the server: Tesseract's wasm and
 language model are far too heavy for a serverless function. The parsed number is
 advisory only, so nothing security-relevant rests on the client being honest.
 
+### How tickets get to the people they're for
+
+A buyer paying for five tickets is almost always buying for four other people.
+Sending them one link with all five QR codes on it is the wrong shape: every
+recipient can see and use everyone else's ticket, and nobody can tell which one
+is theirs.
+
+So each ticket has its own `shareToken` and its own page at `/t/<shareToken>`,
+showing that ticket alone. On the buyer's order page every ticket is a row with:
+
+- a **Send** button — on a phone this hands the QR **image** to the native share
+  sheet (`navigator.share` with a file), so it lands in WhatsApp as a picture
+  the recipient can keep. Where that isn't supported it falls back to a
+  `wa.me` link containing the single-ticket URL.
+- a **who's this for?** field, so the buyer can keep track while sending
+- a **sent / not sent** state, so they can see what's left to hand out
+
+The buyer's own link stays the master view. The approval message deliberately
+does *not* list every code any more — that is what encouraged forwarding the
+whole set. A one-ticket order gets its ticket link directly instead.
+
+Naming and marking-as-sent are reached with the buyer's order token rather than
+a staff login. The service layer re-checks that the ticket belongs to that
+order, so holding one order's link can't touch another's, and neither action can
+change whether a ticket is valid.
+
 ### Why the codes are signed
 
 Each code is random (`DP-XXXX-XXXX`, 32^8 possibilities) and carries a truncated
@@ -166,12 +192,14 @@ OCR parser doesn't grab the wrong number.
 app/
   page.tsx                     public — poster, bank details, upload form
   actions.ts                   Server Actions: approve, reject, OCR, scan, undo
-  o/[token]/                   the guest's tickets and QR codes
+  o/[token]/                   the buyer's order — send each ticket from here
+  t/[shareToken]/              one ticket, for whoever it was sent to
   v/[payload]/                 QR landing, forwards into the gated scanner
   admin/                       queue, order review, door scanner
   api/orders/                  public submission (multipart, so REST not an action)
   api/admin/screenshot/[id]/   presigned R2 redirect, staff only
   api/qr/[token]/              PNG per ticket, addressed by order token
+  api/qr/t/[shareToken]/       PNG for a single shared ticket
   dev/receipt/                 test screenshot generator
 lib/
   schema.ts                    Drizzle tables
@@ -186,6 +214,14 @@ drizzle/                       generated SQL migrations
 ```
 
 ## Design
+
+Colour choices are checked, not eyeballed: every text/background pair on a page
+is composited through a canvas and measured against WCAG contrast minimums
+(4.5:1 body, 3:1 for large text). Two things this caught that looked fine in a
+mockup — white text on the gold buttons at **1.86:1**, and the flame gradient
+bottoming out at **2.41:1** against the near-black page, which made the lower
+half of the poster type unreadable.
+
 
 Palette and component shapes follow the printed ticket — black and gold with a
 flame-red accent. Components are [shadcn](https://ui.shadcn.com/)-structured, so

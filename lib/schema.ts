@@ -51,6 +51,15 @@ export const tickets = pgTable(
       .references(() => orders.id, { onDelete: "cascade" }),
     code: text("code").notNull().unique(),
     seq: integer("seq").notNull(),
+    /**
+     * Per-ticket public handle. Each ticket is shared on its own link so the
+     * person you gave ticket 3 to sees only ticket 3 — never the buyer's whole
+     * set, and never anyone else's QR.
+     */
+    shareToken: text("share_token").unique(),
+    /** Optional "who is this for", so the buyer can keep track while sending. */
+    assignedName: text("assigned_name"),
+    sharedAt: timestamp("shared_at", { withTimezone: true }),
     status: text("status").$type<TicketStatus>().notNull().default("valid"),
     usedAt: timestamp("used_at", { withTimezone: true }),
     /** Clerk user id of the door person who scanned it in. */

@@ -10,8 +10,9 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-white text-black hover:bg-white/90 shadow-[0_1px_3px_0_rgba(0,0,0,0.4)]",
+        // Gold is a light surface: it takes the dark ink, never white.
         accent:
-          "bg-[var(--accent)] text-white hover:brightness-110 shadow-[0_6px_24px_-8px_var(--accent)]",
+          "bg-[var(--accent)] text-[var(--accent-foreground)] hover:brightness-110 shadow-[0_6px_24px_-8px_var(--accent)]",
         outline:
           "border border-[var(--input)] bg-transparent text-[var(--foreground)] hover:bg-white/5 hover:border-white/30",
         ghost: "text-[var(--muted-foreground)] hover:bg-white/5 hover:text-[var(--foreground)]",

@@ -277,55 +277,45 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* A bank card, not a form: the account number reads like the
-                   hero of a physical card, everything else sits below it as
-                   small labelled tiles. */}
-                <div className="mt-7 rounded-2xl border border-[var(--gold)]/25 bg-gradient-to-br from-black/60 to-black/20 p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="t-fact text-[10px] tracking-[0.25em] text-[var(--muted-foreground)]">
-                      {BANK.bank.toUpperCase()}
+                {/* A bank card, not a form: one flat surface, a single
+                   divider between "what to type" and "what it's for" — no
+                   nested boxes, no copy button on things you don't paste. */}
+                <div className="mt-7 rounded-2xl border border-[var(--gold)]/25 bg-black/40 p-6">
+                  <p className="t-fact text-[10px] tracking-[0.25em] text-[var(--muted-foreground)]">
+                    {BANK.bank.toUpperCase()}
+                  </p>
+
+                  <div className="mt-4 flex items-center justify-between gap-4">
+                    <p className="truncate font-[family-name:var(--font-mono)] text-3xl tracking-[0.06em] text-white">
+                      {BANK.accountNumber}
                     </p>
                     <CopyButton value={BANK.accountNumber} label="account number" />
                   </div>
-                  <p className="mt-4 truncate font-[family-name:var(--font-mono)] text-2xl tracking-[0.06em] text-white">
-                    {BANK.accountNumber}
-                  </p>
-                  <div className="mt-1 flex items-center justify-between gap-3">
-                    <p className="truncate text-sm text-[var(--gold)]">
+
+                  <div className="mt-3 flex items-center justify-between gap-4">
+                    <p className="truncate text-base text-[var(--gold)]">
                       {BANK.accountName}
                     </p>
                     <CopyButton value={BANK.accountName} label="account name" />
                   </div>
 
-                  <div className="mt-5 grid grid-cols-2 gap-2.5">
-                    <div className="rounded-xl bg-black/30 px-3.5 py-2.5">
+                  <div className="mt-5 flex items-center gap-6 border-t border-white/10 pt-4">
+                    <div className="min-w-0">
                       <p className="t-fact text-[9px] text-[var(--muted-foreground)]">
-                        Branch / transit
+                        Branch
                       </p>
                       <p className="mt-0.5 truncate font-[family-name:var(--font-mono)] text-sm text-white">
                         {BANK.branchCode}
                       </p>
                     </div>
-                    <div className="rounded-xl bg-black/30 px-3.5 py-2.5">
+                    <div className="min-w-0">
                       <p className="t-fact text-[9px] text-[var(--muted-foreground)]">
                         Account type
                       </p>
-                      <p className="mt-0.5 truncate text-sm text-white">
+                      <p className="mt-0.5 truncate font-[family-name:var(--font-mono)] text-sm text-white">
                         {BANK.accountType}
                       </p>
                     </div>
-                  </div>
-
-                  <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-black/30 px-3.5 py-2.5">
-                    <div className="min-w-0">
-                      <p className="t-fact text-[9px] text-[var(--muted-foreground)]">
-                        Reference
-                      </p>
-                      <p className="mt-0.5 truncate text-sm text-white">
-                        {BANK.reference}
-                      </p>
-                    </div>
-                    <CopyButton value={BANK.reference} label="reference" />
                   </div>
                 </div>
 

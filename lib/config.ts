@@ -45,11 +45,11 @@ export const LINEUP = [
 ] as const;
 
 export const BANK = {
-  accountName: "J. Persaud",
-  bank: "Republic Bank",
-  accountNumber: "000 000 000 000",
-  branchCode: "Transit 000",
-  accountType: "Chequing",
+  accountName: "Waheeda Persaud",
+  bank: "First Citizens Bank (FCB)",
+  accountNumber: "2889477",
+  branchCode: "Diego Martin",
+  accountType: "Savings",
   reference: "Your name + WhatsApp number",
 };
 

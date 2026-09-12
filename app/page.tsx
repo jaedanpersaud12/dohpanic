@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { Headphones, Landmark, MapPin, Mic2, ShieldCheck, Ticket } from "lucide-react";
+import {
+  Headphones,
+  Landmark,
+  MapPin,
+  Mic2,
+  ShieldCheck,
+  Smartphone,
+  Ticket,
+  Upload,
+} from "lucide-react";
 import { BANK, CAUSE, EVENT, money } from "@/lib/config";
 import {
   Embers,
@@ -14,27 +23,18 @@ import { CopyButton } from "@/components/copy-button";
 import { PaymentForm } from "@/components/payment-form";
 import { BuyCta } from "@/components/buy-cta";
 
-const BANK_ROWS: { label: string; value: string; copy?: boolean }[] = [
-  { label: "Account name", value: BANK.accountName, copy: true },
-  { label: "Bank", value: BANK.bank },
-  { label: "Account number", value: BANK.accountNumber, copy: true },
-  { label: "Branch / transit", value: BANK.branchCode, copy: true },
-  { label: "Account type", value: BANK.accountType },
-  { label: "Reference", value: BANK.reference },
-];
-
 const STEPS = [
   {
     n: "01",
-    title: "Transfer the amount",
-    body: `Any multiple of ${money(EVENT.ticketPriceCents)}. Send ${money(
-      EVENT.ticketPriceCents * 5
-    )} and you get five tickets.`,
+    title: "Leave this page & transfer",
+    body: `Open your banking app and send any multiple of ${money(
+      EVENT.ticketPriceCents
+    )}. Send ${money(EVENT.ticketPriceCents * 5)} and you get five tickets.`,
   },
   {
     n: "02",
-    title: "Upload the screenshot",
-    body: "We check it against the account by hand — usually within the hour.",
+    title: "Come back & upload proof",
+    body: "Return to this page and upload a screenshot of the transfer — we check it by hand, usually within the hour.",
   },
   {
     n: "03",
@@ -233,8 +233,36 @@ export default function Home() {
 
         {/* --------------------------------------------------------- payment */}
         <section id="buy" className="t-enter mt-12 scroll-mt-6">
+          {/* Spelled out up front for anyone who hasn't done a bank transfer
+             from a phone before: this is two separate stops, not one form. */}
+          <div className="mx-auto mb-6 grid max-w-3xl gap-3 sm:grid-cols-2">
+            <div className="flex items-start gap-3 rounded-2xl border border-[var(--gold)]/35 bg-[var(--gold)]/10 px-5 py-4">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--gold)]/20 text-sm font-bold text-[var(--gold)]">
+                1
+              </span>
+              <p className="text-sm leading-relaxed text-white">
+                <span className="flex items-center gap-1.5 font-semibold text-[var(--gold)]">
+                  <Smartphone className="size-3.5" /> Leave this page
+                </span>
+                Open your banking app and send the transfer using the details
+                below.
+              </p>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-[var(--gold)]/35 bg-[var(--gold)]/10 px-5 py-4">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--gold)]/20 text-sm font-bold text-[var(--gold)]">
+                2
+              </span>
+              <p className="text-sm leading-relaxed text-white">
+                <span className="flex items-center gap-1.5 font-semibold text-[var(--gold)]">
+                  <Upload className="size-3.5" /> Come back here
+                </span>
+                Return to this page and upload a screenshot of the transfer.
+              </p>
+            </div>
+          </div>
+
           <div className="t-frame t-frame-double overflow-hidden rounded-2xl">
-            <div className="grid lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)]">
+            <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
               {/* ------------------------------------------- where to pay */}
               <div className="flex flex-col p-6 sm:p-8">
                 <div className="flex items-center gap-3">
@@ -242,31 +270,64 @@ export default function Home() {
                     <Landmark className="size-4 text-[var(--gold)]" />
                   </span>
                   <div>
-                    <h2 className="t-gold text-xl">Transfer to</h2>
+                    <h2 className="t-gold text-xl">Step 1 · Transfer to</h2>
                     <p className="text-sm text-[var(--muted-foreground)]">
-                      Then upload your proof
+                      From your own banking app
                     </p>
                   </div>
                 </div>
 
-                <dl className="mt-7 divide-y divide-[var(--border)]">
-                  {BANK_ROWS.map((row) => (
-                    <div
-                      key={row.label}
-                      className="flex items-center justify-between gap-4 py-3.5"
-                    >
-                      <div className="min-w-0">
-                        <dt className="t-fact text-[10px] text-[var(--muted-foreground)]">
-                          {row.label}
-                        </dt>
-                        <dd className="mt-1 truncate font-[family-name:var(--font-mono)] text-[15px] text-white">
-                          {row.value}
-                        </dd>
-                      </div>
-                      {row.copy && <CopyButton value={row.value} label={row.label} />}
+                {/* A bank card, not a form: the account number reads like the
+                   hero of a physical card, everything else sits below it as
+                   small labelled tiles. */}
+                <div className="mt-7 rounded-2xl border border-[var(--gold)]/25 bg-gradient-to-br from-black/60 to-black/20 p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="t-fact text-[10px] tracking-[0.25em] text-[var(--muted-foreground)]">
+                      {BANK.bank.toUpperCase()}
+                    </p>
+                    <CopyButton value={BANK.accountNumber} label="account number" />
+                  </div>
+                  <p className="mt-4 truncate font-[family-name:var(--font-mono)] text-2xl tracking-[0.06em] text-white">
+                    {BANK.accountNumber}
+                  </p>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <p className="truncate text-sm text-[var(--gold)]">
+                      {BANK.accountName}
+                    </p>
+                    <CopyButton value={BANK.accountName} label="account name" />
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-2.5">
+                    <div className="rounded-xl bg-black/30 px-3.5 py-2.5">
+                      <p className="t-fact text-[9px] text-[var(--muted-foreground)]">
+                        Branch / transit
+                      </p>
+                      <p className="mt-0.5 truncate font-[family-name:var(--font-mono)] text-sm text-white">
+                        {BANK.branchCode}
+                      </p>
                     </div>
-                  ))}
-                </dl>
+                    <div className="rounded-xl bg-black/30 px-3.5 py-2.5">
+                      <p className="t-fact text-[9px] text-[var(--muted-foreground)]">
+                        Account type
+                      </p>
+                      <p className="mt-0.5 truncate text-sm text-white">
+                        {BANK.accountType}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-black/30 px-3.5 py-2.5">
+                    <div className="min-w-0">
+                      <p className="t-fact text-[9px] text-[var(--muted-foreground)]">
+                        Reference
+                      </p>
+                      <p className="mt-0.5 truncate text-sm text-white">
+                        {BANK.reference}
+                      </p>
+                    </div>
+                    <CopyButton value={BANK.reference} label="reference" />
+                  </div>
+                </div>
 
                 {/* mt-auto pins this to the bottom, so both halves end level */}
                 <p className="mt-auto flex items-start gap-2.5 pt-8 text-xs leading-relaxed text-[var(--muted-foreground)]">

@@ -89,9 +89,10 @@ export function PaymentForm({ currency, priceCents }: Props) {
       onSubmit={submit}
       className="w-full"
     >
-      <h2 className="t-gold text-xl">Send your proof of payment</h2>
+      <h2 className="t-gold text-xl">Step 2 · Send your proof of payment</h2>
       <p className="mt-1.5 text-sm text-[var(--muted-foreground)]">
-        Transfer first, then upload the screenshot here.
+        Already sent the transfer from your banking app? Fill this in and
+        attach the screenshot.
       </p>
 
       <div className="mt-7 grid gap-5">

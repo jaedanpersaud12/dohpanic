@@ -1,4 +1,4 @@
-import { CAUSE, EVENT, baseUrl, money, ticketsFor } from "./config";
+import { EVENT, baseUrl } from "./config";
 import type { Order, Ticket } from "./db";
 
 /**
@@ -33,60 +33,31 @@ export function whatsappLink(number: string, message: string): string {
 /**
  * The "here are your N tickets" message.
  *
+ * Kept short on purpose: this is opened as a wa.me deep link, and the longer,
+ * emoji-heavy version of this message used to arrive garbled on some phones
+ * (the Web Share API used for individual ticket sends never had that
+ * problem — it isn't URL-encoded — so this stays plain text, no emoji).
+ *
  * For a single ticket we send the ticket itself. For several we deliberately
  * do NOT list every code: that invites forwarding the whole set to everybody,
  * which is how people end up at the door unsure which QR is theirs. Instead we
  * point at the order page, where each ticket has its own link and send button.
  */
 export function approvalMessage(order: Order, tickets: Ticket[]): string {
-  const paid = order.approvedCents ?? 0;
-  const { remainderCents } = ticketsFor(paid);
   const n = tickets.length;
   const firstName = order.buyerName.trim().split(/\s+/)[0] || "there";
+  const link =
+    n === 1 && tickets[0].shareToken
+      ? `${baseUrl()}/t/${tickets[0].shareToken}`
+      : `${baseUrl()}/o/${order.token}`;
 
-  const lines: string[] = [];
-  lines.push(`*${EVENT.theme}* — payment confirmed ✅`);
-  lines.push("");
-  lines.push(
-    `Hi ${firstName}, we received ${money(paid)} — that's *${n} ticket${
-      n === 1 ? "" : "s"
-    }*.`
-  );
-  lines.push("");
-
-  if (n === 1 && tickets[0].shareToken) {
-    lines.push("Here's your ticket:");
-    lines.push(`${baseUrl()}/t/${tickets[0].shareToken}`);
-    lines.push("");
-    lines.push(`Code: ${tickets[0].code}`);
-  } else {
-    lines.push("Open your tickets here:");
-    lines.push(`${baseUrl()}/o/${order.token}`);
-    lines.push("");
-    lines.push(
-      "Each ticket has its own Send button on that page — tap it to pass a ticket straight to whoever it's for, so nobody has to work out which QR is theirs."
-    );
-  }
-
-  if (remainderCents > 0) {
-    lines.push("");
-    lines.push(
-      `(${money(remainderCents)} left over — not enough for another ticket.)`
-    );
-  }
-
-  lines.push("");
-  lines.push(`📅 ${EVENT.date} · ${EVENT.timeRange}`);
-  lines.push(`📍 ${EVENT.venue}`);
-  lines.push(
-    n === 1
-      ? "Show the QR at the door. It admits one person and works once."
-      : "Each code admits one person and works once — don't forward them around."
-  );
-  lines.push("");
-  lines.push(`Thank you for supporting ${CAUSE.beneficiary}. 🎗️`);
-
-  return lines.join("\n");
+  return [
+    `Hi ${firstName}, here's your ${n} ticket${n === 1 ? "" : "s"} for *${EVENT.theme}*:`,
+    link,
+    "",
+    `${EVENT.date} · ${EVENT.timeRange}`,
+    EVENT.venue,
+  ].join("\n");
 }
 
 export function rejectionMessage(order: Order): string {
